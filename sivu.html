@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Pakohuone — Sähköposti- ja kirjautumissimulaatio</title>
+  <meta name="description" content="Simuloitu sähköpostilaatikko ja kirjautuminen pakohuone-/koulutuskäyttöön. Ei tietoja lähetetä mihinkään."/>
+  <style>
+    :root{
+      --bg:#f6f8fb; --card:#fff; --accent:#0b74f6; --muted:#556070;
+      --shadow: 0 8px 24px rgba(12,24,49,0.08);
+      --radius:14px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      min-height:100%;
+      background:linear-gradient(180deg,#f6f8fb, #eef6ff 60%);
+      color:#0b1220;
+      padding:18px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+    }
+
+    .wrap{width:100%;max-width:980px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    h1{font-size:18px;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    /* language toggle */
+    .lang-switch{display:flex;gap:8px;align-items:center}
+    .lang-btn{
+      border:1px solid transparent;padding:8px 10px;border-radius:10px;background:transparent;cursor:pointer;font-weight:600;
+      font-size:13px;color:var(--muted)
+    }
+    .lang-btn.active{background:var(--card);border-color:#e6f0ff;color:var(--accent);box-shadow:var(--shadow)}
+
+    /* tabs */
+    .tabs{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+    .tab{
+      background:transparent;border:1px solid transparent;padding:10px 14px;border-radius:10px;cursor:pointer;
+      font-weight:700;color:var(--muted);font-size:14px
+    }
+    .tab.active{background:var(--card);border-color:#e6eefc;color:var(--accent);box-shadow:var(--shadow)}
+
+    /* panels */
+    .panel{
+      background:var(--card);padding:16px;border-radius:var(--radius);box-shadow:var(--shadow);
+    }
+
+    /* layout grid */
+    .grid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+    @media (max-width:880px){
+      .grid{grid-template-columns:1fr}
+    }
+
+    /* emails */
+    .emails{display:flex;flex-direction:column;gap:12px}
+    .email-card{
+      border-radius:10px;padding:12px;border:1px solid #eef6ff;background:#fff;touch-action:manipulation;
+    }
+    .email-meta{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-bottom:8px}
+    .email-subject{font-weight:800;margin-bottom:6px;font-size:15px}
+    .email-body{color:#102030;font-size:14px;line-height:1.35}
+
+    /* login box */
+    .login-box{padding:12px;border-radius:10px;border:1px solid #eef6ff;background:#fff}
+    label{display:block;margin-bottom:6px;font-size:13px;color:#1f2937}
+    input[type="text"], input[type="password"]{
+      width:100%;padding:12px;border-radius:10px;border:1px solid #e9f1ff;margin-bottom:10px;font-size:15px;
+      outline:none;box-shadow:none;
+    }
+    input[type="text"]:focus, input[type="password"]:focus{border-color:var(--accent);}
+
+    button.btn{
+      background:var(--accent);color:white;padding:12px 14px;border-radius:12px;border:0;font-weight:800;cursor:pointer;font-size:15px;
+      display:inline-flex;align-items:center;gap:8px;
+    }
+    button.ghost{background:transparent;border:1px solid #e6eefc;color:var(--accent);font-weight:700;padding:10px 12px;border-radius:10px}
+
+    .sim-credentials{
+      margin-top:12px;padding:12px;border-radius:10px;background:#fff7ed;border:1px solid #ffedd5;color:#92400e;font-size:14px;
+    }
+    .notice{margin-top:10px;color:var(--muted);font-size:13px}
+
+    footer{margin-top:14px;color:var(--muted);font-size:13px;text-align:center}
+
+    /* small helpers */
+    .small{font-size:13px;color:var(--muted)}
+    pre{background:#0b1220;color:#dbeafe;padding:10px;border-radius:8px;overflow:auto;font-size:13px;margin:0}
+  </style>
+</head>
+<body>
+  <div class="wrap" role="application" aria-label="Simulaatio">
+    <header>
+      <div>
+        <h1 id="title">Pakohuone — Sähköposti & Kirjautumissimulaatio</h1>
+        <p class="lead" id="subtitle">Turvallinen paikallinen simulaatio. Ei tietoja lähetetä.</p>
+      </div>
+
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+        <div class="lang-switch" role="toolbar" aria-label="Kieli">
+          <button id="fiBtn" class="lang-btn active" aria-pressed="true" onclick="setLang('fi')">Suomi</button>
+          <button id="enBtn" class="lang-btn" aria-pressed="false" onclick="setLang('en')">English</button>
+        </div>
+        <div class="small" id="trainerNote">Muokkaa HTML:ää muokataksesi viestejä ja vihjeitä.</div>
+      </div>
+    </header>
+
+    <div class="tabs" role="tablist" aria-label="Päävalikko">
+      <button id="tab-emails" class="tab active" role="tab" aria-selected="true" onclick="showTab('emails')">Sähköpostit</button>
+      <button id="tab-login" class="tab" role="tab" aria-selected="false" onclick="showTab('login')">Kirjaudu (simulaatio)</button>
+    </div>
+
+    <!-- Emails panel -->
+    <div id="panel-emails" class="panel" role="tabpanel" aria-hidden="false">
+      <div class="grid">
+        <section>
+          <h2 id="inboxTitle">Saapuneet</h2>
+          <div class="emails" id="emailsList">
+
+            <article class="email-card" aria-label="Sähköposti 1">
+              <div class="email-meta"><span id="from1">Lähettäjä: noreply@example.com</span><span id="date1">1.10.2025</span></div>
+              <div class="email-subject" id="subject1">Tervetuloa palveluun</div>
+              <div class="email-body" id="body1">Voit kirjoittaa sähköpostin sisältö tänne — voit laittaa vihjeen tai tehtävän kuvauksen.</div>
+            </article>
+
+            <article class="email-card" aria-label="Sähköposti 2">
+              <div class="email-meta"><span id="from2">Lähettäjä: support@company.fi</span><span id="date2">3.10.2025</span></div>
+              <div class="email-subject" id="subject2">Tärkeä tilapäivitys</div>
+              <div class="email-body" id="body2">Voit kirjoittaa sähköpostin sisältö tänne — lisää ohje tai harhautus osallistujille.</div>
+            </article>
+
+            <article class="email-card" aria-label="Sähköposti 3">
+              <div class="email-meta"><span id="from3">Lähettäjä: hr@office.local</span><span id="date3">5.10.2025</span></div>
+              <div class="email-subject" id="subject3">Sisäinen muistio</div>
+              <div class="email-body" id="body3">Voit kirjoittaa sähköpostin sisältö tänne — laita päivämääriä, outoa kieltä tai vihjeitä.</div>
+            </article>
+
+            <!-- Lisää kopioimalla article-lohkoja ja muokkaamalla body-tekstin kohdalla "Voit kirjoittaa..." -->
+          </div>
+        </section>
+
+        <aside>
+          <div class="login-box" aria-labelledby="quickLoginTitle">
+            <strong id="quickLoginTitle">Nopea simulaatiokirjautuminen</strong>
+            <p class="small" id="quickLoginNote">Tämä on vain simulaatio — tunnukset näkyvät alla tarkoituksella.</p>
+
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="ghost" onclick="showTab('login')" id="openLoginBtn">Avaa kirjautuminen</button>
+            </div>
+
+            <div class="sim-credentials" aria-live="polite" id="simCredsBox">
+              <strong id="simCredsTitle">SIMULAATIO TUNNUKSET (näkyvissä)</strong><br>
+              Käyttäjä: <code id="simUser">simuser</code><br>
+              Salasana: <code id="simPass">simpass</code>
+            </div>
+
+            <p class="notice" id="trainerTips">Ohjaajan huomautus: pidä nämä tunnukset näkyvissä ja selkeästi merkittyinä.</p>
+          </div>
+
+          <div class="panel" style="margin-top:12px">
+            <strong id="trainerTitle">Ohjaajan vinkit</strong>
+            <ul style="padding-left:18px;margin:8px 0;color:var(--muted);font-size:14px">
+              <li id="tip1">Muokkaa sähköpostiviestien sisältöä HTML:ssä laittamalla vihjeitä.</li>
+              <li id="tip2">Älä yhdistä tätä sivua oikeisiin kirjautumisiin — käytä paikallisesti.</li>
+              <li id="tip3">Ratkaisun voi paljastaa "afterLogin"-alueella kirjautumisen jälkeen.</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- Login panel -->
+    <div id="panel-login" class="panel" role="tabpanel" aria-hidden="true" style="display:none;margin-top:12px">
+      <h2 id="loginTitle">Kirjaudu (simulaatio)</h2>
+
+      <form id="loginForm" onsubmit="handleLogin(event)" autocomplete="off" novalidate>
+        <label for="username" id="usernameLabel">Käyttäjätunnus</label>
+        <input id="username" type="text" name="username" placeholder="Anna käyttäjätunnus" required inputmode="text"/>
+
+        <label for="password" id="passwordLabel">Salasana</label>
+        <input id="password" type="password" name="password" placeholder="Anna salasana" required />
+
+        <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
+          <button class="btn" type="submit" id="signInBtn">Kirjaudu (simulaatio)</button>
+          <div id="loginResult" class="small" aria-live="polite"></div>
+        </div>
+
+        <div class="sim-credentials" style="margin-top:12px">
+          <strong id="simCredTitle">SIMULAATIO TUNNUKSET (näkyvissä)</strong><br>
+          Käyttäjä: <code id="simUser2">simuser</code><br>
+          Salasana: <code id="simPass2">simpass</code>
+        </div>
+
+        <p class="notice" id="loginNotice">Tämä sivu simuloi kirjautumista paikallisesti — tietoja ei lähetetä palvelimelle.</p>
+      </form>
+
+      <div id="afterLogin" style="display:none;margin-top:14px" class="panel">
+        <h3 id="successTitle" style="margin:0 0 8px 0">Onnistui — simuloitu pääsy myönnetty</h3>
+        <p id="successText">Olet kirjautunut simulaatiotunnuksilla. Tässä voit paljastaa seuraavan vihjeen osallistujille.</p>
+        <pre id="secretBox">Voit kirjoittaa seuraavan tehtävän tai viestin tänne.</pre>
+      </div>
+    </div>
+
+    <footer>
+      <small id="footerNote">Tietosuoja & turvallisuus: Tämä on paikallinen harjoitustyökalu. Älä käytä tätä huijaamaan oikeita käyttäjiä.</small>
+    </footer>
+  </div>
+
+  <script>
+    // ====== Translations ======
+    const TXT = {
+      fi: {
+        title: "Pakohuone — Sähköposti & Kirjautumissimulaatio",
+        subtitle: "Turvallinen paikallinen simulaatio. Ei tietoja lähetetä.",
+        trainerNote: "Muokkaa HTML:ää muokataksesi viestejä ja vihjeitä.",
+        tabEmails: "Sähköpostit",
+        tabLogin: "Kirjaudu (simulaatio)",
+        inboxTitle: "Saapuneet",
+        quickLoginTitle: "Nopea simulaatiokirjautuminen",
+        quickLoginNote: "Tämä on vain simulaatio — tunnukset näkyvät alla tarkoituksella.",
+        openLoginBtn: "Avaa kirjautuminen",
+        simCredsTitle: "SIMULAATIO TUNNUKSET (näkyvissä)",
+        trainerTips: "Ohjaajan huomautus: pidä nämä tunnukset näkyvissä ja selkeästi merkittyinä.",
+        trainerTitle: "Ohjaajan vinkit",
+        tip1: "Muokkaa sähköpostiviestien sisältöä HTML:ssä laittamalla vihjeitä.",
+        tip2: "Älä yhdistä tätä sivua oikeisiin kirjautumisiin — käytä paikallisesti.",
+        tip3: "Ratkaisun voi paljastaa \"afterLogin\"-alueella kirjautumisen jälkeen.",
+        loginTitle: "Kirjaudu (simulaatio)",
+        usernameLabel: "Käyttäjätunnus",
+        passwordLabel: "Salasana",
+        signInBtn: "Kirjaudu (simulaatio)",
+        simCredTitle: "SIMULAATIO TUNNUKSET (näkyvissä)",
+        loginNotice: "Tämä sivu simuloi kirjautumista paikallisesti — tietoja ei lähetetä palvelimelle.",
+        successTitle: "Onnistui — simuloitu pääsy myönnetty",
+        successText: "Olet kirjautunut simulaatiotunnuksilla. Tässä voit paljastaa seuraavan vihjeen osallistujille.",
+        footerNote: "Tietosuoja & turvallisuus: Tämä on paikallinen harjoitustyökalu. Älä käytä tätä huijaamaan oikeita käyttäjiä."
+      },
+      en: {
+        title: "Escape Room — Email & Login Simulation",
+        subtitle: "Safe local simulation. No data is sent anywhere.",
+        trainerNote: "Edit the HTML to change messages and clues.",
+        tabEmails: "Emails",
+        tabLogin: "Login (simulation)",
+        inboxTitle: "Inbox",
+        quickLoginTitle: "Quick simulation login",
+        quickLoginNote: "This is a simulation only — credentials are intentionally visible below.",
+        openLoginBtn: "Open Login",
+        simCredsTitle: "SIMULATION CREDENTIALS (visible)",
+        trainerTips: "Trainer note: keep these credentials visible and clearly marked.",
+        trainerTitle: "Trainer tips",
+        tip1: "Edit the email bodies in the HTML to add clues.",
+        tip2: "Do not connect this page to real auth systems — keep it local.",
+        tip3: "You can reveal the solution in the 'afterLogin' area after login.",
+        loginTitle: "Login (simulation)",
+        usernameLabel: "Username",
+        passwordLabel: "Password",
+        signInBtn: "Sign in (simulate)",
+        simCredTitle: "SIMULATION CREDENTIALS (visible)",
+        loginNotice: "This page simulates login locally — nothing is sent to a server.",
+        successTitle: "Success — simulated access granted",
+        successText: "You logged in with the simulation credentials. Use this area to reveal the next clue for players.",
+        footerNote: "Privacy & safety: This is a local training tool. Do not adapt to deceive real users."
+      }
+    };
+
+    // Current language
+    let LANG = 'fi';
+
+    // Elements to localize
+    const LMAP = {
+      title: 'title',
+      subtitle: 'subtitle',
+      trainerNote: 'trainerNote',
+      tabEmails: 'tab-emails',
+      tabLogin: 'tab-login',
+      inboxTitle: 'inboxTitle',
+      quickLoginTitle: 'quickLoginTitle',
+      quickLoginNote: 'quickLoginNote',
+      openLoginBtn: 'openLoginBtn',
+      simCredsTitle: 'simCredsTitle',
+      trainerTips: 'trainerTips',
+      trainerTitle: 'trainerTitle',
+      tip1: 'tip1',
+      tip2: 'tip2',
+      tip3: 'tip3',
+      loginTitle: 'loginTitle',
+      usernameLabel: 'usernameLabel',
+      passwordLabel: 'passwordLabel',
+      signInBtn: 'signInBtn',
+      simCredTitle: 'simCredTitle',
+      loginNotice: 'loginNotice',
+      successTitle: 'successTitle',
+      successText: 'successText',
+      footerNote: 'footerNote'
+    };
+
+    function setLang(lang){
+      LANG = lang;
+      // update active button
+      document.getElementById('fiBtn').classList.toggle('active', lang === 'fi');
+      document.getElementById('fiBtn').setAttribute('aria-pressed', lang === 'fi');
+      document.getElementById('enBtn').classList.toggle('active', lang === 'en');
+      document.getElementById('enBtn').setAttribute('aria-pressed', lang === 'en');
+
+      const dict = TXT[lang];
+      // Replace texts
+      for(const k in LMAP){
+        const elId = LMAP[k];
+        const node = document.getElementById(elId);
+        if(node && dict[k] !== undefined){
+          // button elements for tabs use innerText
+          if(node.tagName.toLowerCase() === 'button' || node.tagName.toLowerCase() === 'strong' || node.tagName.toLowerCase() === 'h1' || node.tagName.toLowerCase() === 'h2' || node.tagName.toLowerCase() === 'p' || node.tagName.toLowerCase() === 'div'){
+            node.innerText = dict[k];
+          } else {
+            node.innerText = dict[k];
+          }
+        }
+      }
+
+      // Labels and placeholders
+      document.getElementById('username').placeholder = (lang === 'fi') ? 'Anna käyttäjätunnus' : 'Enter username';
+      document.getElementById('password').placeholder = (lang === 'fi') ? 'Anna salasana' : 'Enter password';
+      // Email bodies: keep them editable in HTML; if you want to translate them automatically, add code here.
+      // Update page title attribute
+      document.title = dict.title;
+    }
+
+    // Initialize language UI
+    setLang(LANG);
+
+    // Simple tab switching
+    function showTab(name){
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-emails').classList.toggle('active', name === 'emails');
+      document.getElementById('tab-login').classList.toggle('active', name === 'login');
+
+      const showEmails = (name === 'emails');
+      document.getElementById('panel-emails').style.display = showEmails ? 'block' : 'none';
+      document.getElementById('panel-login').style.display = showEmails ? 'none' : 'block';
+
+      document.getElementById('panel-emails').setAttribute('aria-hidden', (!showEmails).toString());
+      document.getElementById('panel-login').setAttribute('aria-hidden', (showEmails).toString());
+      // Focus management for accessibility
+      if(!showEmails) document.getElementById('username').focus();
+    }
+
+    // Simulation credentials (visible)
+    const SIM_USERNAME = 'simuser';
+    const SIM_PASSWORD = 'simpass';
+    // Put credentials in visible spots to reduce deception
+    document.getElementById('simUser').innerText = SIM_USERNAME;
+    document.getElementById('simPass').innerText = SIM_PASSWORD;
+    document.getElementById('simUser2').innerText = SIM_USERNAME;
+    document.getElementById('simPass2').innerText = SIM_PASSWORD;
+
+    // Login handling (client-side only)
+    function handleLogin(e){
+      e.preventDefault();
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value.trim();
+      const res = document.getElementById('loginResult');
+
+      if(u === SIM_USERNAME && p === SIM_PASSWORD){
+        res.style.color = 'green';
+        res.innerText = (LANG === 'fi') ? 'OK — simuloitu kirjautuminen onnistui' : 'OK — simulated login successful';
+        document.getElementById('afterLogin').style.display = 'block';
+        // Reveal a default secret message that admins can edit
+        document.getElementById('secretBox').innerText = (LANG === 'fi')
+          ? 'Onnistuit! Kirjoita seuraava tehtävä tai vihje tähän.'
+          : 'Congratulations! Write the next task or clue here.';
+      } else {
+        res.style.color = 'crimson';
+        res.innerText = (LANG === 'fi') ? 'Virheellinen (simulaatio)' : 'Incorrect (simulation)';
+        document.getElementById('afterLogin').style.display = 'none';
+      }
+    }
+
+    // Improve mobile UX: allow pressing Enter to submit; handled via form submit by default.
+    // Accessibility: allow language switching via keyboard
+    document.getElementById('fiBtn').addEventListener('keyup', e => { if(e.key === 'Enter') setLang('fi'); });
+    document.getElementById('enBtn').addEventListener('keyup', e => { if(e.key === 'Enter') setLang('en'); });
+
+    // Optionally: make email items tappable to expand — left as static for simplicity.
+  </script>
+</body>
+</html>
