@@ -202,10 +202,54 @@
 
       <div id="afterLogin" style="display:none;margin-top:14px" class="panel">
         <h3 id="successTitle" style="margin:0 0 8px 0">Onnistui — simuloitu pääsy myönnetty</h3>
-        <p id="successText">Olet kirjautunut simulaatiotunnuksilla. Tässä voit paljastaa seuraavan vihjeen osallistujille.</p>
+        <p id="successText">Olet kirjautunut simulaatiotunnuksilla..</p>
+        <!-- timer -->
+      <div id="countdown" style="font-size:25px;font-weight:bold;margin-bottom:10px;">30:00</div>
+
+      <pre id="secretBox">Voit kirjoittaa seuraavan tehtävän tai viestin tänne.</pre>
+    </div>
+
+    <script>
+      let timer; // global so we can clear it if needed
+      const countdownEl = document.getElementById('countdown');
+      const alarmSound = document.getElementById('alarmSound');
+
+      function startCountdown(durationSeconds) {
+        let timeLeft = durationSeconds;
+
+        // Clear any previous timer if user logs in again
+        clearInterval(timer);
+
+        timer = setInterval(() => {
+          const minutes = Math.floor(timeLeft / 60);
+          const seconds = timeLeft % 60;
+          countdownEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+          if (timeLeft <= 0) {
+            clearInterval(timer);
+            countdownEl.textContent = "Aika loppui!";
+            setTimeout(() => {document.body.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                height:100vh;text-align:center;background:black;color:red;font-family:monospace;">
+            <h1 style="font-size:3em;">All data erased</h1>
+            <p style="font-size:1.5em;">You lose.</p>
+            <!-- Hidden Audio Element -->
+            <audio id="alarmSound" autoplay>
+            <source src="https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg" type="audio/ogg">
+            </audio>
+            </div>`; }, 2000);
+
+          } else {
+            timeLeft--;
+          }
+        }, 1000);
+      }
+    </script>
         <pre id="secretBox">Voit kirjoittaa seuraavan tehtävän tai viestin tänne.</pre>
+
       </div>
     </div>
+    
 
     <footer>
       <small id="footerNote">Tietosuoja & turvallisuus: Tämä on paikallinen harjoitustyökalu. Älä käytä tätä huijaamaan oikeita käyttäjiä.</small>
@@ -238,7 +282,7 @@
         simCredTitle: "SIMULAATIO TUNNUKSET (näkyvissä)",
         loginNotice: "Tämä sivu simuloi kirjautumista paikallisesti — tietoja ei lähetetä palvelimelle.",
         successTitle: "Onnistui — simuloitu pääsy myönnetty",
-        successText: "Olet kirjautunut simulaatiotunnuksilla. Tässä voit paljastaa seuraavan vihjeen osallistujille.",
+        successText: "Teillä on",
         footerNote: "Tietosuoja & turvallisuus: Tämä on paikallinen harjoitustyökalu. Älä käytä tätä huijaamaan oikeita käyttäjiä."
       },
       en: {
@@ -264,7 +308,7 @@
         simCredTitle: "SIMULATION CREDENTIALS (visible)",
         loginNotice: "This page simulates login locally — nothing is sent to a server.",
         successTitle: "Success — simulated access granted",
-        successText: "You logged in with the simulation credentials. Use this area to reveal the next clue for players.",
+        successText: "You have",
         footerNote: "Privacy & safety: This is a local training tool. Do not adapt to deceive real users."
       }
     };
@@ -372,8 +416,11 @@
         document.getElementById('afterLogin').style.display = 'block';
         // Reveal a default secret message that admins can edit
         document.getElementById('secretBox').innerText = (LANG === 'fi')
-          ? 'Onnistuit! Kirjoita seuraava tehtävä tai vihje tähän.'
-          : 'Congratulations! Write the next task or clue here.';
+          ? 'Kunnes sairaalan järjestelmä poistaa kaiken potilasdatan turvallisuussyistä viimeisen vuoden ajalta! .'
+          : 'Until the hospital system wipes down all the patient data for the last year for safety reasons .';
+        // Start the countdown (30 min = 1800 seconds)
+        startCountdown(30* 60);  
+
       } else {
         res.style.color = 'crimson';
         res.innerText = (LANG === 'fi') ? 'Virheellinen (simulaatio)' : 'Incorrect (simulation)';
